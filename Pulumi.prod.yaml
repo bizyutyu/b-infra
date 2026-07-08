@@ -1,0 +1,8 @@
+config:
+  gcp:project: b-website-prod
+  gcp:region: asia-northeast1
+  b-infra:projectId: b-website-prod
+  b-infra:projectDisplayName: b website
+  b-infra:hostingSiteId: b-website-prod
+  b-infra:billingAccountId:
+    secure: AAABAJ4Cve6wiwlV05JgQzcRZyqWS+pPZRFoOtuKhm+z0Bs8detG/eFBEgd6bQJ0Uennaw==

@@ -1,0 +1,5 @@
+config:
+  gcp:project: b-website-prod
+  gcp:region: asia-northeast1
+  b-infra-bootstrap:projectId: b-website-prod
+  b-infra-bootstrap:githubRepo: bizyutyu/b-infra

@@ -1,0 +1,3 @@
+name: b-infra-bootstrap
+runtime: nodejs
+description: One-time bootstrap - WIF pool/provider, GitHub Actions deploy service account, API enablement
