@@ -1,2 +1,3 @@
 allowBuilds:
-  protobufjs: set this to true or false
+  # pulumi preview/up の動作確認済み。ビルドスクリプト無効のまま問題ないため許可しない
+  protobufjs: false
