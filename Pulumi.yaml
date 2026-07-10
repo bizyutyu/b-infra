@@ -1,0 +1,3 @@
+name: b-infra
+runtime: nodejs
+description: GCP/Firebase Hosting production infrastructure (b)
