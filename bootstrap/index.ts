@@ -3,7 +3,10 @@ import * as gcp from "@pulumi/gcp";
 
 const config = new pulumi.Config();
 const projectId = config.require("projectId");
-const githubRepo = config.require("githubRepo"); // "owner/repo" 形式
+const githubRepo = config.require("githubRepo"); // "owner/repo" 形式（表示・可読性のため）
+// repository は owner/repo 名の変更・アカウント名の再利用（repojacking）に弱いため、
+// 不変の数値ID（`gh api repos/<owner>/<repo> --jq .id`で取得）も条件に加える。
+const githubRepoId = config.require("githubRepoId");
 
 // --- 1. 必要な API を有効化 -----------------------------------------
 const requiredServices = [
@@ -50,11 +53,15 @@ const githubProvider = new gcp.iam.WorkloadIdentityPoolProvider(
         attributeMapping: {
             "google.subject": "assertion.sub",
             "attribute.repository": "assertion.repository",
+            "attribute.repository_id": "assertion.repository_id",
             "attribute.repository_owner": "assertion.repository_owner",
             "attribute.ref": "assertion.ref",
         },
-        // このリポジトリ以外からの federation を許可しない
-        attributeCondition: pulumi.interpolate`assertion.repository == "${githubRepo}"`,
+        // このリポジトリ以外からの federation を許可しない。
+        // repository（名前）だけでなく repository_id（不変・再利用不可のID）も必須にすることで、
+        // リポジトリ名やGitHubアカウント名が将来変更・解放された後に第三者が同名を取得しても
+        // なりすませないようにする。
+        attributeCondition: pulumi.interpolate`assertion.repository == "${githubRepo}" && assertion.repository_id == "${githubRepoId}"`,
         oidc: {
             issuerUri: "https://token.actions.githubusercontent.com",
         },
@@ -73,11 +80,12 @@ const deploySa = new gcp.serviceaccount.Account(
 );
 
 // --- 5. WIF -> SA なりすまし許可（roles/iam.workloadIdentityUser） -----
-// リポジトリ属性で絞り込み、他リポジトリからは this SA を騙れないようにする
+// repository_id（不変ID）で絞り込み、他リポジトリ・リポジトリ名の乗っ取りからも
+// this SA を騙れないようにする
 const wifBinding = new gcp.serviceaccount.IAMMember("github-actions-wif", {
     serviceAccountId: deploySa.name,
     role: "roles/iam.workloadIdentityUser",
-    member: pulumi.interpolate`principalSet://iam.googleapis.com/${githubPool.name}/attribute.repository/${githubRepo}`,
+    member: pulumi.interpolate`principalSet://iam.googleapis.com/${githubPool.name}/attribute.repository_id/${githubRepoId}`,
 });
 
 // --- 6. 本体 (index.ts) の pulumi up 実行に必要な最小限のロールを付与 ---
