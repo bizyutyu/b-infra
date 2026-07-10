@@ -2,6 +2,7 @@
   "name": "b-infra",
   "private": true,
   "main": "index.ts",
+  "packageManager": "pnpm@11.6.0",
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
