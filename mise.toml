@@ -1,2 +1,2 @@
 [tools]
-pulumi = "latest"
+pulumi = "3.257.0"
