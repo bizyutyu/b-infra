@@ -4,3 +4,5 @@ config:
   b-infra-bootstrap:projectId: b-website-prod
   b-infra-bootstrap:githubRepo: bizyutyu/b-infra
   b-infra-bootstrap:githubRepoId: "1288838076"
+  b-infra-bootstrap:bWebGithubRepo: bizyutyu/b-web
+  b-infra-bootstrap:bWebGithubRepoId: "1268573706"
