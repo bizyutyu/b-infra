@@ -164,6 +164,14 @@ const bWebHostingDeployerRole = new gcp.projects.IAMCustomRole("b-web-hosting-de
         "firebasehosting.sites.update",
         "firebase.projects.get",
         "resourcemanager.projects.get",
+        // 実際にデプロイを試した際、versions作成APIが403ではなく500で失敗する事象を確認。
+        // roles/firebasehosting.adminとの差分にある読み取り専用権限
+        // (sites.create/deleteのような破壊的権限ではない)が不足していたことが原因の
+        // 可能性が高いため追加。resourcemanager.projects.listはカスタムロールでは
+        // 無効な権限(Error 400)だったため除外。
+        "firebase.clients.get",
+        "firebase.clients.list",
+        "firebasehosting.sites.list",
     ],
 });
 
