@@ -179,6 +179,16 @@ new gcp.projects.IAMMember("b-web-deploy-sa-apikeys-viewer", {
     member: pulumi.interpolate`serviceAccount:${bWebDeploySa.email}`,
 });
 
+// firebase-tools が Hosting API をこのプロジェクトのクォータで呼び出すために必要。
+// これがないと firebasehosting.sites.update 権限を持っていても
+// `POST .../versions` が(403ではなく)500 Internal errorで失敗する事象を
+// 実際のデプロイで確認したため追加（bootstrap実装時点で想定していたリスクが顕在化）。
+new gcp.projects.IAMMember("b-web-deploy-sa-serviceusage-consumer", {
+    project: projectId,
+    role: "roles/serviceusage.serviceUsageConsumer",
+    member: pulumi.interpolate`serviceAccount:${bWebDeploySa.email}`,
+});
+
 // --- Outputs（GitHub Actions の repository variables に設定する値） ----
 export const workloadIdentityPoolProviderName = githubProvider.name;
 export const deployServiceAccountEmail = deploySa.email;
