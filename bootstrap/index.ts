@@ -18,6 +18,7 @@ const requiredServices = [
     "cloudbilling.googleapis.com",
     "firebase.googleapis.com",
     "firebasehosting.googleapis.com",
+    "firestore.googleapis.com",
 ];
 
 const services = requiredServices.map(
@@ -197,9 +198,70 @@ new gcp.projects.IAMMember("b-web-deploy-sa-serviceusage-consumer", {
     member: pulumi.interpolate`serviceAccount:${bWebDeploySa.email}`,
 });
 
+// --- 8. b-content（別リポジトリ）専用の追加リソース ------------------------
+// b-content は記事コンテンツ用リポジトリ。main への直接pushで運用し、
+// Firestoreへの同期はworkflow_dispatch（手動トリガー）限定で実行する。
+// b-web用と同様、Provider/SAを使い回さずブラスト半径を分離する。
+const bContentGithubRepo = config.require("bContentGithubRepo");
+const bContentGithubRepoId = config.require("bContentGithubRepoId");
+
+// --- 8-1. Workload Identity Pool Provider（既存 Pool を再利用） -----------
+const bContentGithubProvider = new gcp.iam.WorkloadIdentityPoolProvider(
+    "github-actions-b-content",
+    {
+        project: projectId,
+        workloadIdentityPoolId: githubPool.workloadIdentityPoolId,
+        workloadIdentityPoolProviderId: "github-actions-b-content",
+        displayName: "b-content GitHub Actions OIDC",
+        attributeMapping: {
+            "google.subject": "assertion.sub",
+            "attribute.repository": "assertion.repository",
+            "attribute.repository_id": "assertion.repository_id",
+            "attribute.repository_owner": "assertion.repository_owner",
+            "attribute.ref": "assertion.ref",
+        },
+        attributeCondition: pulumi.interpolate`assertion.repository == "${bContentGithubRepo}" && assertion.repository_id == "${bContentGithubRepoId}"`,
+        oidc: {
+            issuerUri: "https://token.actions.githubusercontent.com",
+        },
+    }
+);
+
+// --- 8-2. b-content 専用デプロイ用サービスアカウント ------------------------
+const bContentDeploySa = new gcp.serviceaccount.Account(
+    "github-actions-b-content-deploy",
+    {
+        project: projectId,
+        accountId: "github-actions-b-content-deploy",
+        displayName: "GitHub Actions deploy (b-content)",
+    },
+    { dependsOn: services }
+);
+
+// --- 8-3. WIF -> SA なりすまし許可（roles/iam.workloadIdentityUser） -------
+const bContentWifBinding = new gcp.serviceaccount.IAMMember("b-content-github-actions-wif", {
+    serviceAccountId: bContentDeploySa.name,
+    role: "roles/iam.workloadIdentityUser",
+    member: pulumi.interpolate`principalSet://iam.googleapis.com/${githubPool.name}/attribute.repository_id/${bContentGithubRepoId}`,
+});
+
+// --- 8-4. Firestoreへのドキュメント書き込みに必要な最小ロールを付与 ----------
+// roles/datastore.user は「ドキュメントの読み書き」のみを許可し、データベース自体の
+// 作成/削除・セキュリティルール変更・インデックス管理のような破壊的操作
+// （roles/datastore.owner側）は含まない。Firestoreのデータプレーン権限は
+// IAM上これ以上細かく分割できないため、b-webのケース（firebasehosting.admin相当の
+// 過剰権限をカスタムロールで絞った）とは異なり、追加のカスタムロール新設は不要と判断。
+new gcp.projects.IAMMember("b-content-deploy-sa-datastore-user", {
+    project: projectId,
+    role: "roles/datastore.user",
+    member: pulumi.interpolate`serviceAccount:${bContentDeploySa.email}`,
+});
+
 // --- Outputs（GitHub Actions の repository variables に設定する値） ----
 export const workloadIdentityPoolProviderName = githubProvider.name;
 export const deployServiceAccountEmail = deploySa.email;
 export const workloadIdentityPoolName = githubPool.name;
 export const bWebWorkloadIdentityPoolProviderName = bWebGithubProvider.name;
 export const bWebDeployServiceAccountEmail = bWebDeploySa.email;
+export const bContentWorkloadIdentityPoolProviderName = bContentGithubProvider.name;
+export const bContentDeployServiceAccountEmail = bContentDeploySa.email;

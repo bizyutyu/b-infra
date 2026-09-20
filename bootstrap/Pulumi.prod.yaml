@@ -6,3 +6,5 @@ config:
   b-infra-bootstrap:githubRepoId: "1288838076"
   b-infra-bootstrap:bWebGithubRepo: bizyutyu/b-web
   b-infra-bootstrap:bWebGithubRepoId: "1268573706"
+  b-infra-bootstrap:bContentGithubRepo: bizyutyu/b-content
+  b-infra-bootstrap:bContentGithubRepoId: "1378228884"

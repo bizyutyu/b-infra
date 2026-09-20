@@ -40,7 +40,23 @@ const hostingSite = new gcp.firebase.HostingSite(
     { dependsOn: [firebaseProject] }
 );
 
+// Firestore（Native mode）データベースを作成。b-content から記事データを同期する。
+// 記事データという実データを保持するため、Projectリソースと同様に誤削除を防ぐ設定を入れる。
+const firestoreDatabase = new gcp.firestore.Database(
+    "default",
+    {
+        project: project.projectId,
+        name: "(default)",
+        locationId: "asia-northeast1",
+        type: "FIRESTORE_NATIVE",
+        deleteProtectionState: "DELETE_PROTECTION_ENABLED",
+        deletionPolicy: "PREVENT",
+    },
+    { dependsOn: [project] }
+);
+
 export const gcpProjectId = project.projectId;
 export const gcpProjectNumber = project.number;
 export const hostingSiteName = hostingSite.name;
 export const hostingDefaultUrl = hostingSite.defaultUrl;
+export const firestoreDatabaseName = firestoreDatabase.name;
