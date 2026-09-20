@@ -19,6 +19,7 @@ const requiredServices = [
     "firebase.googleapis.com",
     "firebasehosting.googleapis.com",
     "firestore.googleapis.com",
+    "firebaserules.googleapis.com",
 ];
 
 const services = requiredServices.map(

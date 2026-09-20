@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
 
@@ -53,6 +54,35 @@ const firestoreDatabase = new gcp.firestore.Database(
         deletionPolicy: "PREVENT",
     },
     { dependsOn: [project] }
+);
+
+// Firestore Security Rules: articlesコレクションのみ公開読み取りを許可し、
+// 書き込みは常に拒否する（CIからの書き込みはAdmin SDK経由でIAMにより制御され、
+// Security Rulesをバイパスするため影響を受けない）。
+const firestoreRuleset = new gcp.firebaserules.Ruleset(
+    "firestore",
+    {
+        project: project.projectId,
+        source: {
+            files: [
+                {
+                    name: "firestore.rules",
+                    content: fs.readFileSync("firestore.rules", "utf-8"),
+                },
+            ],
+        },
+    },
+    { dependsOn: [firestoreDatabase] }
+);
+
+const firestoreRulesRelease = new gcp.firebaserules.Release(
+    "firestore",
+    {
+        project: project.projectId,
+        name: "cloud.firestore",
+        rulesetName: pulumi.interpolate`projects/${project.projectId}/rulesets/${firestoreRuleset.name}`,
+    },
+    { dependsOn: [firestoreRuleset] }
 );
 
 export const gcpProjectId = project.projectId;
