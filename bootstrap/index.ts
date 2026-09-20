@@ -232,7 +232,10 @@ const bContentDeploySa = new gcp.serviceaccount.Account(
     "github-actions-b-content-deploy",
     {
         project: projectId,
-        accountId: "github-actions-b-content-deploy",
+        // GCPのサービスアカウントaccountIdは6〜30文字制限があり、
+        // "github-actions-b-content-deploy"(31文字)は超過するため、
+        // "b-content"のハイフンを詰めて30文字ちょうどに収める。
+        accountId: "github-actions-bcontent-deploy",
         displayName: "GitHub Actions deploy (b-content)",
     },
     { dependsOn: services }
