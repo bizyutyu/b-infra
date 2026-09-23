@@ -7,6 +7,7 @@ const projectId = config.require("projectId");
 const projectDisplayName = config.get("projectDisplayName") ?? projectId;
 const billingAccountId = config.requireSecret("billingAccountId");
 const hostingSiteId = config.get("hostingSiteId") ?? projectId;
+const customDomain = config.require("customDomain");
 
 // GCP プロジェクトそのものは bootstrap 前段の `gcloud projects create` /
 // `gcloud billing projects link` で既に存在している。ここでは Pulumi の
@@ -85,8 +86,23 @@ const firestoreRulesRelease = new gcp.firebaserules.Release(
     { dependsOn: [firestoreRuleset] }
 );
 
+// カスタムドメイン。DNSレコード自体はPorkbunで手動管理する方針（#3の決定）のため
+// waitDnsVerificationはfalseにし、DNS未設定の状態でもapplyがブロックされないようにする。
+// 必要なDNSレコードはapply後にrequiredDnsUpdatesの出力から確認し、Porkbun側へ手動設定する。
+const hostingCustomDomain = new gcp.firebase.HostingCustomDomain(
+    "default",
+    {
+        project: project.projectId,
+        siteId: hostingSiteId,
+        customDomain,
+        waitDnsVerification: false,
+    },
+    { dependsOn: [hostingSite] }
+);
+
 export const gcpProjectId = project.projectId;
 export const gcpProjectNumber = project.number;
 export const hostingSiteName = hostingSite.name;
 export const hostingDefaultUrl = hostingSite.defaultUrl;
 export const firestoreDatabaseName = firestoreDatabase.name;
+export const hostingCustomDomainRequiredDnsUpdates = hostingCustomDomain.requiredDnsUpdates;
